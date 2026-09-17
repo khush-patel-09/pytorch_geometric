@@ -1,3 +1,5 @@
+import torch
+
 from collections.abc import Sequence
 from typing import Optional, Union
 
@@ -73,6 +75,46 @@ class XENetConv(MessagePassing):
     def message(self, stack: Tensor) -> Tensor:
         """Constructs messages for node aggregation."""
         raise NotImplementedError
+
+    @staticmethod
+    def _get_reverse_edge_index(
+        edge_index: Tensor,
+        num_nodes: int,
+    ) -> Tensor:
+        """Returns the index of the reverse edge for every edge."""
+
+        src, dst = edge_index
+
+        # Encode each directed edge (src, dst) as a unique integer.
+        keys = src * num_nodes + dst
+        reverse_keys = dst * num_nodes + src
+
+        # Sort edge keys so we can efficiently locate reverse edges.
+        sorted_keys, permutation = torch.sort(keys)
+
+        positions = torch.searchsorted(
+            sorted_keys,
+            reverse_keys,
+        )
+
+        valid = positions < sorted_keys.numel()
+
+        if valid.any():
+            valid_positions = positions[valid]
+            matches = (
+                sorted_keys[valid_positions] == reverse_keys[valid]
+            )
+            valid_indices = valid.nonzero(as_tuple=True)[0]
+            valid[valid_indices] = matches
+
+        if not valid.all():
+            raise ValueError(
+                "XENetConv requires both directions of every edge. "
+                "For every edge i -> j, the reverse edge j -> i "
+                "must also be present in edge_index."
+            )
+
+        return permutation[positions]
 
     def __repr__(self) -> str:
         return (
