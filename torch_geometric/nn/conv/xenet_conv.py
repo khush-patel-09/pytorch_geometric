@@ -6,7 +6,7 @@ from typing import Optional, Union
 from torch import Tensor
 from torch import nn
 
-from torch_geometric.nn.conv import MessagePassing
+from torch_geometric.nn import Linear, MessagePassing
 
 
 class XENetConv(MessagePassing):
@@ -46,12 +46,43 @@ class XENetConv(MessagePassing):
         self.attention = attention
 
         self.stack_models = nn.ModuleList()
+
+        for i, channels in enumerate(self.stack_channels):
+            in_channels = -1 if i == 0 else self.stack_channels[i - 1]
+            self.stack_models.append(
+                Linear(in_channels, channels)
+            )
+
+        self.stack_activation = nn.PReLU(self.stack_channels[-1])
+
         self.node_model = None
         self.edge_model = None
 
         if attention:
             self.incoming_attention = None
             self.outgoing_attention = None
+
+
+    def _compute_stack(
+        self,
+        x_i: Tensor,
+        x_j: Tensor,
+        e_ij: Tensor,
+        e_ji: Tensor,
+    ) -> Tensor:
+        """Computes the XENet edge representation s_ij."""
+
+        stack = torch.cat(
+            [x_i, x_j, e_ij, e_ji],
+            dim=-1,
+        )
+
+        for model in self.stack_models:
+            stack = model(stack)
+            stack = self.stack_activation(stack)
+
+        return stack
+    
 
     def forward(
         self,
