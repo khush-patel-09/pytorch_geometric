@@ -59,8 +59,14 @@ class XENetConv(MessagePassing):
         self.edge_model = None
 
         if attention:
-            self.incoming_attention = None
-            self.outgoing_attention = None
+            self.incoming_attention = Linear(
+                self.stack_channels[-1],
+                1,
+            )
+            self.outgoing_attention = Linear(
+                self.stack_channels[-1],
+                1,
+            )
 
 
     def _compute_stack(
@@ -90,22 +96,93 @@ class XENetConv(MessagePassing):
         edge_index: Tensor,
         edge_attr: Tensor,
     ) -> tuple[Tensor, Tensor]:
-        """Runs the forward pass.
+        """Runs the forward pass."""
 
-        Args:
-            x (torch.Tensor): Node features.
-            edge_index (torch.Tensor): Graph connectivity.
-            edge_attr (torch.Tensor): Edge features.
+        if x.dim() != 2:
+            raise ValueError(
+                "'x' must have shape [num_nodes, num_node_features]"
+            )
 
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                Updated node features and edge features.
-        """
-        raise NotImplementedError
+        if edge_index.dim() != 2 or edge_index.size(0) != 2:
+            raise ValueError(
+                "'edge_index' must have shape [2, num_edges]"
+            )
 
-    def message(self, stack: Tensor) -> Tensor:
-        """Constructs messages for node aggregation."""
-        raise NotImplementedError
+        if edge_attr.dim() == 1:
+            edge_attr = edge_attr.view(-1, 1)
+
+        if edge_attr.dim() != 2:
+            raise ValueError(
+                "'edge_attr' must have shape [num_edges, num_edge_features]"
+            )
+
+        if edge_index.size(1) != edge_attr.size(0):
+            raise ValueError(
+                "'edge_index' and 'edge_attr' must contain the same "
+                "number of edges"
+            )
+
+        reverse_index = self._get_reverse_edge_index(
+            edge_index,
+            x.size(0),
+        )
+
+        src, dst = edge_index
+
+        x_i = x[src]
+        x_j = x[dst]
+
+        e_ij = edge_attr
+        e_ji = edge_attr[reverse_index]
+
+        stack = self._compute_stack(
+            x_i,
+            x_j,
+            e_ij,
+            e_ji,
+        )
+
+        # Incoming: j -> i
+        incoming = self.propagate(
+            edge_index,
+            stack=stack,
+            direction="incoming",
+        )
+
+        # Outgoing: i -> j
+        outgoing = self.propagate(
+            edge_index.flip(0),
+            stack=stack,
+            direction="outgoing",
+        )
+
+        # Node and edge updates will be implemented in the next commit.
+        raise NotImplementedError(
+            "Node and edge updates are not implemented yet."
+        )
+
+    def message(
+        self,
+        stack: Tensor,
+        direction: str,
+    ) -> Tensor:
+        """Constructs incoming or outgoing messages."""
+
+        if not self.attention:
+            return stack
+
+        if direction == "incoming":
+            attention = torch.sigmoid(
+                self.incoming_attention(stack)
+            )
+        elif direction == "outgoing":
+            attention = torch.sigmoid(
+                self.outgoing_attention(stack)
+            )
+        else:
+            raise ValueError(f"Unknown direction: {direction}")
+
+        return stack * attention
 
     @staticmethod
     def _get_reverse_edge_index(
