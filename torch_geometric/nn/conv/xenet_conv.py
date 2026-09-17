@@ -55,8 +55,21 @@ class XENetConv(MessagePassing):
 
         self.stack_activation = nn.PReLU(self.stack_channels[-1])
 
-        self.node_model = None
-        self.edge_model = None
+        self.node_model = Linear(
+            -1,
+            node_channels,
+            bias=bias,
+        )
+
+        self.node_activation = nn.PReLU(node_channels)
+
+        self.edge_model = Linear(
+            self.stack_channels[-1],
+            edge_channels,
+            bias=bias,
+        )
+
+        self.edge_activation = nn.PReLU(edge_channels)
 
         if attention:
             self.incoming_attention = Linear(
@@ -157,9 +170,22 @@ class XENetConv(MessagePassing):
         )
 
         # Node and edge updates will be implemented in the next commit.
-        raise NotImplementedError(
-            "Node and edge updates are not implemented yet."
+        # Node update:
+        # x'_i = phi_n(x_i || s_i_out || s_i_in)
+        x_out = self.node_model(
+            torch.cat(
+                [x, outgoing, incoming],
+                dim=-1,
+            )
         )
+        x_out = self.node_activation(x_out)
+
+        # Edge update:
+        # e'_ij = phi_e(s_ij)
+        edge_out = self.edge_model(stack)
+        edge_out = self.edge_activation(edge_out)
+
+        return x_out, edge_out
 
     def message(
         self,
