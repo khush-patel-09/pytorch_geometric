@@ -6,7 +6,8 @@ from typing import Optional, Union
 from torch import Tensor
 from torch import nn
 
-from torch_geometric.nn import Linear, MessagePassing
+from torch_geometric.nn.conv.message_passing import MessagePassing
+from torch_geometric.nn.dense.linear import Linear
 
 
 class XENetConv(MessagePassing):
@@ -160,6 +161,7 @@ class XENetConv(MessagePassing):
             edge_index,
             stack=stack,
             direction="incoming",
+            size=(x.size(0), x.size(0)),
         )
 
         # Outgoing: i -> j
@@ -167,6 +169,7 @@ class XENetConv(MessagePassing):
             edge_index.flip(0),
             stack=stack,
             direction="outgoing",
+            size=(x.size(0), x.size(0)),
         )
 
         # Node and edge updates will be implemented in the next commit.

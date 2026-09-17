@@ -63,6 +63,8 @@ from .dir_gnn_conv import DirGNNConv
 from .mixhop_conv import MixHopConv
 from .meshcnn_conv import MeshCNNConv
 
+from .xenet_conv import XENetConv
+
 import torch_geometric.nn.conv.utils  # noqa
 
 __all__ = [
@@ -133,6 +135,7 @@ __all__ = [
     'DirGNNConv',
     'MixHopConv',
     'MeshCNNConv',
+    'XENetConv'
 ]
 
 classes = __all__
