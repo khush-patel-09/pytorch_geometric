@@ -156,19 +156,28 @@ class XENetConv(MessagePassing):
             e_ji,
         )
 
-        # Incoming: j -> i
-        incoming = self.propagate(
-            edge_index,
-            stack=stack,
-            direction="incoming",
-            size=(x.size(0), x.size(0)),
-        )
+        if self.attention:
+            outgoing_alpha = torch.sigmoid(
+                self.outgoing_attention(stack)
+            )
+            incoming_alpha = torch.sigmoid(
+                self.incoming_attention(stack[reverse_index])
+            )
+        else:
+            outgoing_alpha = stack.new_ones(stack.size(0), 1)
+            incoming_alpha = stack.new_ones(stack.size(0), 1)
 
-        # Outgoing: i -> j
         outgoing = self.propagate(
             edge_index.flip(0),
             stack=stack,
-            direction="outgoing",
+            alpha=outgoing_alpha,
+            size=(x.size(0), x.size(0)),
+        )
+
+        incoming = self.propagate(
+            edge_index,
+            stack=stack,
+            alpha=incoming_alpha,
             size=(x.size(0), x.size(0)),
         )
 
@@ -190,28 +199,8 @@ class XENetConv(MessagePassing):
 
         return x_out, edge_out
 
-    def message(
-        self,
-        stack: Tensor,
-        direction: str,
-    ) -> Tensor:
-        """Constructs incoming or outgoing messages."""
-
-        if not self.attention:
-            return stack
-
-        if direction == "incoming":
-            attention = torch.sigmoid(
-                self.incoming_attention(stack)
-            )
-        elif direction == "outgoing":
-            attention = torch.sigmoid(
-                self.outgoing_attention(stack)
-            )
-        else:
-            raise ValueError(f"Unknown direction: {direction}")
-
-        return stack * attention
+    def message(self, stack: Tensor, alpha: Tensor) -> Tensor:
+        return stack * alpha
 
     @staticmethod
     def _get_reverse_edge_index(
