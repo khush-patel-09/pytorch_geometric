@@ -1,7 +1,7 @@
 import torch
 
 from collections.abc import Sequence
-from typing import Optional, Union
+from typing import Union
 
 from torch import Tensor
 from torch import nn
@@ -130,7 +130,6 @@ class XENetConv(MessagePassing):
             stack = activation(stack)
 
         return stack
-    
 
     def forward(
         self,
@@ -208,7 +207,6 @@ class XENetConv(MessagePassing):
             size=(x.size(0), x.size(0)),
         )
 
-        # Node and edge updates will be implemented in the next commit.
         # Node update:
         # x'_i = phi_n(x_i || s_i_out || s_i_in)
         x_out = self.node_model(
