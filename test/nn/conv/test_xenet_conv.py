@@ -153,3 +153,28 @@ def test_xenet_conv_multiple_stack_layers():
 
     assert out_x.size() == (4, 12)
     assert out_edge_attr.size() == (6, 6)
+
+def test_xenet_conv_self_loops():
+    x = torch.randn(3, 8)
+
+    edge_index = torch.tensor([
+        [0, 1, 2],
+        [0, 1, 2],
+    ])
+
+    edge_attr = torch.randn(3, 4)
+
+    conv = XENetConv(
+        stack_channels=16,
+        node_channels=12,
+        edge_channels=6,
+    )
+
+    out_x, out_edge_attr = conv(
+        x,
+        edge_index,
+        edge_attr,
+    )
+
+    assert out_x.size() == (3, 12)
+    assert out_edge_attr.size() == (3, 6)
