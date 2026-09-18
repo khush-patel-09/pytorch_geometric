@@ -117,7 +117,6 @@ class XENetConv(MessagePassing):
         e_ji: Tensor,
     ) -> Tensor:
         """Computes the XENet edge representation s_ij."""
-
         stack = torch.cat(
             [x_i, x_j, e_ij, e_ji],
             dim=-1,
@@ -140,7 +139,6 @@ class XENetConv(MessagePassing):
         edge_attr: Tensor,
     ) -> tuple[Tensor, Tensor]:
         """Runs the forward pass."""
-
         if x.dim() != 2:
             raise ValueError(
                 "'x' must have shape [num_nodes, num_node_features]"
@@ -237,7 +235,6 @@ class XENetConv(MessagePassing):
         num_nodes: int,
     ) -> Tensor:
         """Returns the index of the reverse edge for every edge."""
-
         src, dst = edge_index
 
         # Encode each directed edge (src, dst) as a unique integer.
