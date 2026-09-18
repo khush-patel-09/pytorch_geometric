@@ -119,3 +119,12 @@ def test_xenet_conv_bias():
     assert conv.stack_models[0].bias is None
     assert conv.incoming_attention.bias is None
     assert conv.outgoing_attention.bias is None
+
+def test_xenet_conv_reset_parameters():
+    conv = XENetConv(
+        stack_channels=8,
+        node_channels=4,
+        edge_channels=6,
+    )
+
+    conv.reset_parameters()

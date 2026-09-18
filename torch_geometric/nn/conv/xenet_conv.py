@@ -8,6 +8,7 @@ from torch import nn
 
 from torch_geometric.nn.conv.message_passing import MessagePassing
 from torch_geometric.nn.dense.linear import Linear
+from torch_geometric.nn.inits import reset
 
 
 class XENetConv(MessagePassing):
@@ -83,6 +84,22 @@ class XENetConv(MessagePassing):
                 1,
                 bias=bias,
             )
+
+    def reset_parameters(self):
+        super().reset_parameters()
+
+        for model in self.stack_models:
+            reset(model)
+
+        reset(self.stack_activation)
+        reset(self.node_model)
+        reset(self.node_activation)
+        reset(self.edge_model)
+        reset(self.edge_activation)
+
+        if self.attention:
+            reset(self.incoming_attention)
+            reset(self.outgoing_attention)
 
 
     def _compute_stack(
