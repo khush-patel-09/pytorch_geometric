@@ -48,14 +48,17 @@ class XENetConv(MessagePassing):
         self.attention = attention
 
         self.stack_models = nn.ModuleList()
+        self.stack_activations = nn.ModuleList()
 
         for i, channels in enumerate(self.stack_channels):
             in_channels = -1 if i == 0 else self.stack_channels[i - 1]
+
             self.stack_models.append(
                 Linear(in_channels, channels, bias=bias)
             )
-
-        self.stack_activation = nn.PReLU(self.stack_channels[-1])
+            self.stack_activations.append(
+                nn.PReLU(channels)
+            )
 
         self.node_model = Linear(
             -1,
@@ -91,7 +94,8 @@ class XENetConv(MessagePassing):
         for model in self.stack_models:
             reset(model)
 
-        reset(self.stack_activation)
+        for activation in self.stack_activations:
+            reset(activation)
         reset(self.node_model)
         reset(self.node_activation)
         reset(self.edge_model)
@@ -116,9 +120,12 @@ class XENetConv(MessagePassing):
             dim=-1,
         )
 
-        for model in self.stack_models:
+        for model, activation in zip(
+            self.stack_models,
+            self.stack_activations,
+        ):
             stack = model(stack)
-            stack = self.stack_activation(stack)
+            stack = activation(stack)
 
         return stack
     
