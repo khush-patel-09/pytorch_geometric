@@ -105,3 +105,17 @@ def test_xenet_conv_gradients():
 
     assert x.grad is not None
     assert edge_attr.grad is not None
+
+def test_xenet_conv_bias():
+    conv = XENetConv(
+        stack_channels=8,
+        node_channels=4,
+        edge_channels=6,
+        bias=False,
+    )
+
+    assert conv.node_model.bias is None
+    assert conv.edge_model.bias is None
+    assert conv.stack_models[0].bias is None
+    assert conv.incoming_attention.bias is None
+    assert conv.outgoing_attention.bias is None

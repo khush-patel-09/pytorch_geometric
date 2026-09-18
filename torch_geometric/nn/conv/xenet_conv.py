@@ -51,7 +51,7 @@ class XENetConv(MessagePassing):
         for i, channels in enumerate(self.stack_channels):
             in_channels = -1 if i == 0 else self.stack_channels[i - 1]
             self.stack_models.append(
-                Linear(in_channels, channels)
+                Linear(in_channels, channels, bias=bias)
             )
 
         self.stack_activation = nn.PReLU(self.stack_channels[-1])
@@ -76,10 +76,12 @@ class XENetConv(MessagePassing):
             self.incoming_attention = Linear(
                 self.stack_channels[-1],
                 1,
+                bias=bias,
             )
             self.outgoing_attention = Linear(
                 self.stack_channels[-1],
                 1,
+                bias=bias,
             )
 
 
