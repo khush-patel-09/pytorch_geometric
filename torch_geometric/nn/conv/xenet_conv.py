@@ -1,10 +1,8 @@
-import torch
-
 from collections.abc import Sequence
 from typing import Union
 
-from torch import Tensor
-from torch import nn
+import torch
+from torch import Tensor, nn
 
 from torch_geometric.nn.conv.message_passing import MessagePassing
 from torch_geometric.nn.dense.linear import Linear
@@ -28,7 +26,6 @@ class XENetConv(MessagePassing):
         bias (bool, optional): Whether to use bias terms.
             (default: ``True``)
     """
-
     def __init__(
         self,
         stack_channels: Union[int, Sequence[int]],
@@ -43,7 +40,8 @@ class XENetConv(MessagePassing):
             stack_channels = [stack_channels]
 
         if len(stack_channels) == 0:
-            raise ValueError("'stack_channels' must contain at least one layer")
+            raise ValueError(
+                "'stack_channels' must contain at least one layer")
 
         self.stack_channels = list(stack_channels)
         self.node_channels = node_channels
@@ -56,12 +54,8 @@ class XENetConv(MessagePassing):
         for i, channels in enumerate(self.stack_channels):
             in_channels = -1 if i == 0 else self.stack_channels[i - 1]
 
-            self.stack_models.append(
-                Linear(in_channels, channels, bias=bias)
-            )
-            self.stack_activations.append(
-                nn.PReLU(channels)
-            )
+            self.stack_models.append(Linear(in_channels, channels, bias=bias))
+            self.stack_activations.append(nn.PReLU(channels))
 
         self.node_model = Linear(
             -1,
@@ -108,7 +102,6 @@ class XENetConv(MessagePassing):
             reset(self.incoming_attention)
             reset(self.outgoing_attention)
 
-
     def _compute_stack(
         self,
         x_i: Tensor,
@@ -123,8 +116,8 @@ class XENetConv(MessagePassing):
         )
 
         for model, activation in zip(
-            self.stack_models,
-            self.stack_activations,
+                self.stack_models,
+                self.stack_activations,
         ):
             stack = model(stack)
             stack = activation(stack)
@@ -140,27 +133,22 @@ class XENetConv(MessagePassing):
         """Runs the forward pass."""
         if x.dim() != 2:
             raise ValueError(
-                "'x' must have shape [num_nodes, num_node_features]"
-            )
+                "'x' must have shape [num_nodes, num_node_features]")
 
         if edge_index.dim() != 2 or edge_index.size(0) != 2:
-            raise ValueError(
-                "'edge_index' must have shape [2, num_edges]"
-            )
+            raise ValueError("'edge_index' must have shape [2, num_edges]")
 
         if edge_attr.dim() == 1:
             edge_attr = edge_attr.view(-1, 1)
 
         if edge_attr.dim() != 2:
             raise ValueError(
-                "'edge_attr' must have shape [num_edges, num_edge_features]"
-            )
+                "'edge_attr' must have shape [num_edges, num_edge_features]")
 
         if edge_index.size(1) != edge_attr.size(0):
             raise ValueError(
                 "'edge_index' and 'edge_attr' must contain the same "
-                "number of edges"
-            )
+                "number of edges")
 
         reverse_index = self._get_reverse_edge_index(
             edge_index,
@@ -183,12 +171,9 @@ class XENetConv(MessagePassing):
         )
 
         if self.attention:
-            outgoing_alpha = torch.sigmoid(
-                self.outgoing_attention(stack)
-            )
+            outgoing_alpha = torch.sigmoid(self.outgoing_attention(stack))
             incoming_alpha = torch.sigmoid(
-                self.incoming_attention(stack[reverse_index])
-            )
+                self.incoming_attention(stack[reverse_index]))
         else:
             outgoing_alpha = stack.new_ones(stack.size(0), 1)
             incoming_alpha = stack.new_ones(stack.size(0), 1)
@@ -209,12 +194,10 @@ class XENetConv(MessagePassing):
 
         # Node update:
         # x'_i = phi_n(x_i || s_i_out || s_i_in)
-        x_out = self.node_model(
-            torch.cat(
-                [x, outgoing, incoming],
-                dim=-1,
-            )
-        )
+        x_out = self.node_model(torch.cat(
+            [x, outgoing, incoming],
+            dim=-1,
+        ))
         x_out = self.node_activation(x_out)
 
         # Edge update:
@@ -251,9 +234,7 @@ class XENetConv(MessagePassing):
 
         if valid.any():
             valid_positions = positions[valid]
-            matches = (
-                sorted_keys[valid_positions] == reverse_keys[valid]
-            )
+            matches = (sorted_keys[valid_positions] == reverse_keys[valid])
             valid_indices = valid.nonzero(as_tuple=True)[0]
             valid[valid_indices] = matches
 
@@ -261,15 +242,12 @@ class XENetConv(MessagePassing):
             raise ValueError(
                 "XENetConv requires both directions of every edge. "
                 "For every edge i -> j, the reverse edge j -> i "
-                "must also be present in edge_index."
-            )
+                "must also be present in edge_index.")
 
         return permutation[positions]
 
     def __repr__(self) -> str:
-        return (
-            f"{self.__class__.__name__}("
-            f"stack_channels={self.stack_channels}, "
-            f"node_channels={self.node_channels}, "
-            f"edge_channels={self.edge_channels})"
-        )
+        return (f"{self.__class__.__name__}("
+                f"stack_channels={self.stack_channels}, "
+                f"node_channels={self.node_channels}, "
+                f"edge_channels={self.edge_channels})")

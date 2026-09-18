@@ -106,6 +106,7 @@ def test_xenet_conv_gradients():
     assert x.grad is not None
     assert edge_attr.grad is not None
 
+
 def test_xenet_conv_bias():
     conv = XENetConv(
         stack_channels=8,
@@ -120,6 +121,7 @@ def test_xenet_conv_bias():
     assert conv.incoming_attention.bias is None
     assert conv.outgoing_attention.bias is None
 
+
 def test_xenet_conv_reset_parameters():
     conv = XENetConv(
         stack_channels=8,
@@ -128,6 +130,7 @@ def test_xenet_conv_reset_parameters():
     )
 
     conv.reset_parameters()
+
 
 def test_xenet_conv_multiple_stack_layers():
     x = torch.randn(4, 8)
@@ -154,6 +157,7 @@ def test_xenet_conv_multiple_stack_layers():
     assert out_x.size() == (4, 12)
     assert out_edge_attr.size() == (6, 6)
 
+
 def test_xenet_conv_self_loops():
     x = torch.randn(3, 8)
 
@@ -179,10 +183,11 @@ def test_xenet_conv_self_loops():
     assert out_x.size() == (3, 12)
     assert out_edge_attr.size() == (3, 6)
 
+
 def test_xenet_conv_empty_stack():
     with pytest.raises(
-        ValueError,
-        match="stack_channels.*at least one layer",
+            ValueError,
+            match="stack_channels.*at least one layer",
     ):
         XENetConv(
             stack_channels=[],
