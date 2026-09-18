@@ -178,3 +178,14 @@ def test_xenet_conv_self_loops():
 
     assert out_x.size() == (3, 12)
     assert out_edge_attr.size() == (3, 6)
+
+def test_xenet_conv_empty_stack():
+    with pytest.raises(
+        ValueError,
+        match="stack_channels.*at least one layer",
+    ):
+        XENetConv(
+            stack_channels=[],
+            node_channels=4,
+            edge_channels=6,
+        )

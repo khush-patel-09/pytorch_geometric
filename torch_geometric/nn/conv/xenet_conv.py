@@ -42,6 +42,9 @@ class XENetConv(MessagePassing):
         if isinstance(stack_channels, int):
             stack_channels = [stack_channels]
 
+        if len(stack_channels) == 0:
+            raise ValueError("'stack_channels' must contain at least one layer")
+
         self.stack_channels = list(stack_channels)
         self.node_channels = node_channels
         self.edge_channels = edge_channels
